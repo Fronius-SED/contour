@@ -18,7 +18,7 @@
   ],
   // Uncomment the next line to use Docker from inside the container. See https://aka.ms/vscode-remote/samples/docker-in-docker for details.
   //"mounts": [ "source=.,target=/workspace,type=bind" ],
-  // We must set workspace mount to null, as we manualy mount the workspace using the volume argument inside the runArgs
+  // We must set workspace mount to null, as we manually mount the workspace using the volume argument inside the runArgs
   "workspaceMount": null,
   "workspaceFolder": "/workspace",
   // Use 'settings' to set *default* container specific settings.json values on container create.
