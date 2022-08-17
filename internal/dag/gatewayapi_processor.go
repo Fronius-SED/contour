@@ -19,9 +19,12 @@ import (
 	"strings"
 	"time"
 
+	contour_api_v1 "github.com/projectcontour/contour/apis/projectcontour/v1"
+	contour_api_v1alpha1 "github.com/projectcontour/contour/apis/projectcontour/v1alpha1"
 	"github.com/projectcontour/contour/internal/gatewayapi"
 	"github.com/projectcontour/contour/internal/k8s"
 	"github.com/projectcontour/contour/internal/status"
+	"github.com/projectcontour/contour/internal/timeout"
 
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,11 +64,6 @@ type matchConditions struct {
 	path        MatchCondition
 	headers     []HeaderMatchCondition
 	queryParams []QueryParamMatchCondition
-}
-
-type AuthSettings struct {
-	authDisabled bool
-	authContext  map[string]string
 }
 
 // Run translates Gateway API types into DAG objects and
@@ -1102,7 +1100,7 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 		var (
 			headerPolicy       *HeadersPolicy
 			headerModifierSeen bool
-			authSettings       *AuthSettings
+			extensionRefAuth   *gatewayapi_v1alpha2.LocalObjectReference // Authentication extension reference
 			redirect           *gatewayapi_v1alpha2.HTTPRequestRedirectFilter
 			mirrorPolicy       *MirrorPolicy
 		)
@@ -1153,10 +1151,9 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 					}
 				}
 			case gatewayapi_v1alpha2.HTTPRouteFilterExtensionRef:
-				//filter.ExtensionRef.Group
-				//filter.ExtensionRef.Kind
-				if filter.ExtensionRef.Name == "envoy.filters.http.ext_authz" {
-					authSettings = &AuthSettings{authDisabled: false, authContext: make(map[string]string)}
+				//
+				if filter.ExtensionRef.Group == "authorization" && filter.ExtensionRef.Kind == "ExtensionService" {
+					extensionRefAuth = &gatewayapi_v1alpha2.LocalObjectReference{Name: filter.ExtensionRef.Name, Group: filter.ExtensionRef.Group, Kind: filter.ExtensionRef.Kind}
 				}
 
 			default:
@@ -1173,9 +1170,9 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 		if redirect != nil {
 			routes = p.redirectRoutes(matchconditions, headerPolicy, redirect)
 		} else {
-			routes = p.clusterRoutes(route.Namespace, matchconditions, headerPolicy, mirrorPolicy, rule.BackendRefs, authSettings, routeAccessor)
+			routes = p.clusterRoutes(route.Namespace, matchconditions, headerPolicy, mirrorPolicy, rule.BackendRefs, extensionRefAuth, routeAccessor)
 		}
-
+		namespace := route.Namespace
 		// Add each route to the relevant vhost(s)/svhosts(s).
 		for host := range hosts {
 			for _, route := range routes {
@@ -1184,6 +1181,11 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 					svhost := p.dag.EnsureSecureVirtualHost(host)
 					svhost.Secret = listener.tlsSecret
 					svhost.AddRoute(route)
+
+					// Configure external authentication
+					if nil != extensionRefAuth {
+						addExtensionRefAuthentication(namespace, extensionRefAuth, svhost, p, routeAccessor)
+					}
 				default:
 					vhost := p.dag.EnsureVirtualHost(host)
 					vhost.AddRoute(route)
@@ -1195,6 +1197,64 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 	}
 
 	return programmed, hosts
+}
+
+// Adds external authentication for a route
+func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.LocalObjectReference, svhost *SecureVirtualHost, p *GatewayAPIProcessor, routeAccessor *status.RouteParentStatusUpdate) {
+
+	ref := contour_api_v1.ExtensionServiceReference{
+		APIVersion: contour_api_v1alpha1.GroupVersion.String(),
+		Namespace:  namespace,
+		Name:       string(refIn.Name),
+	}
+
+	if ref.APIVersion != contour_api_v1alpha1.GroupVersion.String() {
+		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, "AuthBadResourceVersion: Spec.Virtualhost.Authorization.extensionRef specifies an unsupported resource version %q")
+		return
+	}
+
+	// Lookup the extension service reference.
+	extensionName := types.NamespacedName{
+		Name:      ref.Name,
+		Namespace: stringOrDefault(ref.Namespace, namespace),
+	}
+
+	ext := p.dag.GetExtensionCluster(ExtensionClusterName(extensionName))
+	if ext == nil {
+		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, "ExtensionServiceNotFound: Spec.Virtualhost.Authorization.ServiceRef extension service %q not found")
+		return
+	}
+
+	// >>>>>>>>>>>> Should be part of the Extension CRD in future
+	svhost.AuthorizationService = ext
+	svhost.AuthorizationFailOpen = false
+
+	// >>>>>>>>>>>> Response timeout should be prt of the Extension CRD in future
+	timeout, err := timeout.Parse("0.5")
+	if err != nil {
+		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, "AuthResponseTimeoutInvalid: Spec.Virtualhost.Authorization.ResponseTimeout is invalid: %s")
+		return
+	}
+
+	if timeout.UseDefault() {
+		svhost.AuthorizationResponseTimeout = ext.RouteTimeoutPolicy.ResponseTimeout
+	} else {
+		svhost.AuthorizationResponseTimeout = timeout
+	}
+
+	// >>>>>>>>>>>> Should be part of the Extension CRD in future
+	/*if auth.WithRequestBody != nil {
+		var maxRequestBytes = defaultMaxRequestBytes
+		if auth.WithRequestBody.MaxRequestBytes != 0 {
+			maxRequestBytes = auth.WithRequestBody.MaxRequestBytes
+		}
+		svhost.AuthorizationServerWithRequestBody = &AuthorizationServerBufferSettings{
+			MaxRequestBytes:     maxRequestBytes,
+			AllowPartialMessage: auth.WithRequestBody.AllowPartialMessage,
+			PackAsBytes:         auth.WithRequestBody.PackAsBytes,
+		}
+	}*/
+
 }
 
 // validateBackendRef verifies that the specified BackendRef is valid.
@@ -1371,7 +1431,7 @@ func gatewayQueryParamMatchConditions(matches []gatewayapi_v1alpha2.HTTPQueryPar
 }
 
 // clusterRoutes builds a []*dag.Route for the supplied set of matchConditions, headerPolicy and backendRefs.
-func (p *GatewayAPIProcessor) clusterRoutes(routeNamespace string, matchConditions []*matchConditions, headerPolicy *HeadersPolicy, mirrorPolicy *MirrorPolicy, backendRefs []gatewayapi_v1alpha2.HTTPBackendRef, authSettings *AuthSettings, routeAccessor *status.RouteParentStatusUpdate) []*Route {
+func (p *GatewayAPIProcessor) clusterRoutes(routeNamespace string, matchConditions []*matchConditions, headerPolicy *HeadersPolicy, mirrorPolicy *MirrorPolicy, backendRefs []gatewayapi_v1alpha2.HTTPBackendRef, extensionRefAuth *gatewayapi_v1alpha2.LocalObjectReference, routeAccessor *status.RouteParentStatusUpdate) []*Route {
 	if len(backendRefs) == 0 {
 		routeAccessor.AddCondition(gatewayapi_v1alpha2.RouteConditionResolvedRefs, metav1.ConditionFalse, status.ReasonDegraded, "At least one Spec.Rules.BackendRef must be specified.")
 		return nil
@@ -1438,11 +1498,10 @@ func (p *GatewayAPIProcessor) clusterRoutes(routeNamespace string, matchConditio
 			RequestHeadersPolicy:      headerPolicy,
 			MirrorPolicy:              mirrorPolicy,
 		}
-		if nil != authSettings {
-			if !authSettings.authDisabled {
-				r.AuthDisabled = authSettings.authDisabled
-				r.AuthContext = authSettings.authContext
-			}
+		if nil != extensionRefAuth {
+			r.AuthDisabled = false
+			// >>>>>>>>>>>> Where to get the context??
+			r.AuthContext = make(map[string]string)
 		}
 		routes = append(routes, r)
 	}
