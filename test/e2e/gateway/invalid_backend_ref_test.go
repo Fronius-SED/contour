@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	gatewayapi_v1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	gatewayapi_v1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
 func testInvalidBackendRef(namespace string) {
@@ -32,49 +32,49 @@ func testInvalidBackendRef(namespace string) {
 
 		f.Fixtures.Echo.Deploy(namespace, "echo-slash-default")
 
-		route := &gatewayapi_v1beta1.HTTPRoute{
+		route := &gatewayapi_v1alpha2.HTTPRoute{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: namespace,
 				Name:      "http-filter-1",
 			},
-			Spec: gatewayapi_v1beta1.HTTPRouteSpec{
-				Hostnames: []gatewayapi_v1beta1.Hostname{"invalidbackendref.projectcontour.io"},
-				CommonRouteSpec: gatewayapi_v1beta1.CommonRouteSpec{
-					ParentRefs: []gatewayapi_v1beta1.ParentReference{
+			Spec: gatewayapi_v1alpha2.HTTPRouteSpec{
+				Hostnames: []gatewayapi_v1alpha2.Hostname{"invalidbackendref.projectcontour.io"},
+				CommonRouteSpec: gatewayapi_v1alpha2.CommonRouteSpec{
+					ParentRefs: []gatewayapi_v1alpha2.ParentReference{
 						gatewayapi.GatewayParentRef("", "http"), // TODO need a better way to inform the test case of the Gateway it should use
 					},
 				},
-				Rules: []gatewayapi_v1beta1.HTTPRouteRule{
+				Rules: []gatewayapi_v1alpha2.HTTPRouteRule{
 					{
-						Matches: []gatewayapi_v1beta1.HTTPRouteMatch{
+						Matches: []gatewayapi_v1alpha2.HTTPRouteMatch{
 							{
-								Path: &gatewayapi_v1beta1.HTTPPathMatch{
-									Type:  gatewayapi.PathMatchTypePtr(gatewayapi_v1beta1.PathMatchPathPrefix),
+								Path: &gatewayapi_v1alpha2.HTTPPathMatch{
+									Type:  gatewayapi.PathMatchTypePtr(gatewayapi_v1alpha2.PathMatchPathPrefix),
 									Value: pointer.StringPtr("/invalidref"),
 								},
 							},
 						},
-						BackendRefs: []gatewayapi_v1beta1.HTTPBackendRef{
+						BackendRefs: []gatewayapi_v1alpha2.HTTPBackendRef{
 							{
-								BackendRef: gatewayapi_v1beta1.BackendRef{
+								BackendRef: gatewayapi_v1alpha2.BackendRef{
 									BackendObjectReference: gatewayapi.ServiceBackendObjectRef("invalid", 80),
 								},
 							},
 						},
 					},
 					{
-						Matches: []gatewayapi_v1beta1.HTTPRouteMatch{
+						Matches: []gatewayapi_v1alpha2.HTTPRouteMatch{
 							{
-								Path: &gatewayapi_v1beta1.HTTPPathMatch{
-									Type:  gatewayapi.PathMatchTypePtr(gatewayapi_v1beta1.PathMatchPathPrefix),
+								Path: &gatewayapi_v1alpha2.HTTPPathMatch{
+									Type:  gatewayapi.PathMatchTypePtr(gatewayapi_v1alpha2.PathMatchPathPrefix),
 									Value: pointer.StringPtr("/invalidservicename"),
 								},
 							},
 						},
-						BackendRefs: []gatewayapi_v1beta1.HTTPBackendRef{
+						BackendRefs: []gatewayapi_v1alpha2.HTTPBackendRef{
 							{
-								BackendRef: gatewayapi_v1beta1.BackendRef{
-									BackendObjectReference: gatewayapi_v1beta1.BackendObjectReference{
+								BackendRef: gatewayapi_v1alpha2.BackendRef{
+									BackendObjectReference: gatewayapi_v1alpha2.BackendObjectReference{
 										Kind: gatewayapi.KindPtr("Service"),
 										Name: "non-existent-service",
 										Port: gatewayapi.PortNumPtr(80),
@@ -84,18 +84,18 @@ func testInvalidBackendRef(namespace string) {
 						},
 					},
 					{
-						Matches: []gatewayapi_v1beta1.HTTPRouteMatch{
+						Matches: []gatewayapi_v1alpha2.HTTPRouteMatch{
 							{
-								Path: &gatewayapi_v1beta1.HTTPPathMatch{
-									Type:  gatewayapi.PathMatchTypePtr(gatewayapi_v1beta1.PathMatchPathPrefix),
+								Path: &gatewayapi_v1alpha2.HTTPPathMatch{
+									Type:  gatewayapi.PathMatchTypePtr(gatewayapi_v1alpha2.PathMatchPathPrefix),
 									Value: pointer.StringPtr("/"),
 								},
 							},
 						},
-						BackendRefs: []gatewayapi_v1beta1.HTTPBackendRef{
+						BackendRefs: []gatewayapi_v1alpha2.HTTPBackendRef{
 							{
-								BackendRef: gatewayapi_v1beta1.BackendRef{
-									BackendObjectReference: gatewayapi_v1beta1.BackendObjectReference{
+								BackendRef: gatewayapi_v1alpha2.BackendRef{
+									BackendObjectReference: gatewayapi_v1alpha2.BackendObjectReference{
 										Kind: gatewayapi.KindPtr("Service"),
 										Name: "echo-slash-default",
 										Port: gatewayapi.PortNumPtr(80),
@@ -108,7 +108,7 @@ func testInvalidBackendRef(namespace string) {
 			},
 		}
 
-		f.CreateHTTPRouteAndWaitFor(route, func(route *gatewayapi_v1beta1.HTTPRoute) bool {
+		f.CreateHTTPRouteAndWaitFor(route, func(route *gatewayapi_v1alpha2.HTTPRoute) bool {
 			if len(route.Status.Parents) != 1 {
 				return false
 			}
@@ -119,10 +119,10 @@ func testInvalidBackendRef(namespace string) {
 
 			var hasAccepted, hasResolvedRefs bool
 			for _, cond := range route.Status.Parents[0].Conditions {
-				if cond.Type == string(gatewayapi_v1beta1.RouteConditionAccepted) && cond.Status == metav1.ConditionTrue {
+				if cond.Type == string(gatewayapi_v1alpha2.RouteConditionAccepted) && cond.Status == metav1.ConditionTrue {
 					hasAccepted = true
 				}
-				if cond.Type == string(gatewayapi_v1beta1.RouteConditionResolvedRefs) && cond.Status == metav1.ConditionFalse {
+				if cond.Type == string(gatewayapi_v1alpha2.RouteConditionResolvedRefs) && cond.Status == metav1.ConditionFalse {
 					hasResolvedRefs = true
 				}
 			}

@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	gatewayapi_v1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	gatewayapi_v1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
 func testRequestMirrorRule(namespace string) {
@@ -39,25 +39,25 @@ func testRequestMirrorRule(namespace string) {
 		f.Fixtures.Echo.Deploy(namespace, "echo-primary")
 		f.Fixtures.Echo.DeployN(namespace, "echo-shadow", 2)
 
-		route := &gatewayapi_v1beta1.HTTPRoute{
+		route := &gatewayapi_v1alpha2.HTTPRoute{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: namespace,
 				Name:      "httproute-mirror",
 			},
-			Spec: gatewayapi_v1beta1.HTTPRouteSpec{
-				Hostnames: []gatewayapi_v1beta1.Hostname{"requestmirrorrule.gateway.projectcontour.io"},
-				CommonRouteSpec: gatewayapi_v1beta1.CommonRouteSpec{
-					ParentRefs: []gatewayapi_v1beta1.ParentReference{
+			Spec: gatewayapi_v1alpha2.HTTPRouteSpec{
+				Hostnames: []gatewayapi_v1alpha2.Hostname{"requestmirrorrule.gateway.projectcontour.io"},
+				CommonRouteSpec: gatewayapi_v1alpha2.CommonRouteSpec{
+					ParentRefs: []gatewayapi_v1alpha2.ParentReference{
 						gatewayapi.GatewayParentRef("", "http"), // TODO need a better way to inform the test case of the Gateway it should use
 					},
 				},
-				Rules: []gatewayapi_v1beta1.HTTPRouteRule{
+				Rules: []gatewayapi_v1alpha2.HTTPRouteRule{
 					{
-						Matches: gatewayapi.HTTPRouteMatch(gatewayapi_v1beta1.PathMatchPathPrefix, "/mirror"),
-						Filters: []gatewayapi_v1beta1.HTTPRouteFilter{
+						Matches: gatewayapi.HTTPRouteMatch(gatewayapi_v1alpha2.PathMatchPathPrefix, "/mirror"),
+						Filters: []gatewayapi_v1alpha2.HTTPRouteFilter{
 							{
-								Type: gatewayapi_v1beta1.HTTPRouteFilterRequestMirror,
-								RequestMirror: &gatewayapi_v1beta1.HTTPRequestMirrorFilter{
+								Type: gatewayapi_v1alpha2.HTTPRouteFilterRequestMirror,
+								RequestMirror: &gatewayapi_v1alpha2.HTTPRequestMirrorFilter{
 									BackendRef: gatewayapi.ServiceBackendObjectRef("echo-shadow", 80),
 								},
 							},

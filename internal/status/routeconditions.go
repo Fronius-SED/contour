@@ -22,27 +22,26 @@ import (
 	utilclock "k8s.io/utils/clock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gatewayapi_v1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-	gatewayapi_v1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 const (
-	ConditionNotImplemented   gatewayapi_v1beta1.RouteConditionType = "NotImplemented"
-	ConditionValidBackendRefs gatewayapi_v1beta1.RouteConditionType = "ValidBackendRefs"
-	ConditionValidMatches     gatewayapi_v1beta1.RouteConditionType = "ValidMatches"
+	ConditionNotImplemented   gatewayapi_v1alpha2.RouteConditionType = "NotImplemented"
+	ConditionValidBackendRefs gatewayapi_v1alpha2.RouteConditionType = "ValidBackendRefs"
+	ConditionValidMatches     gatewayapi_v1alpha2.RouteConditionType = "ValidMatches"
 )
 
 const (
-	ReasonNotImplemented                gatewayapi_v1beta1.RouteConditionReason = "NotImplemented"
-	ReasonPathMatchType                 gatewayapi_v1beta1.RouteConditionReason = "PathMatchType"
-	ReasonHeaderMatchType               gatewayapi_v1beta1.RouteConditionReason = "HeaderMatchType"
-	ReasonQueryParamMatchType           gatewayapi_v1beta1.RouteConditionReason = "QueryParamMatchType"
-	ReasonHTTPRouteFilterType           gatewayapi_v1beta1.RouteConditionReason = "HTTPRouteFilterType"
-	ReasonDegraded                      gatewayapi_v1beta1.RouteConditionReason = "Degraded"
-	ReasonErrorsExist                   gatewayapi_v1beta1.RouteConditionReason = "ErrorsExist"
-	ReasonAllBackendRefsHaveZeroWeights gatewayapi_v1beta1.RouteConditionReason = "AllBackendRefsHaveZeroWeights"
-	ReasonInvalidPathMatch              gatewayapi_v1beta1.RouteConditionReason = "InvalidPathMatch"
-	ReasonInvalidGateway                gatewayapi_v1beta1.RouteConditionReason = "InvalidGateway"
-	ReasonListenersNotReady             gatewayapi_v1beta1.RouteConditionReason = "ListenersNotReady"
+	ReasonNotImplemented                gatewayapi_v1alpha2.RouteConditionReason = "NotImplemented"
+	ReasonPathMatchType                 gatewayapi_v1alpha2.RouteConditionReason = "PathMatchType"
+	ReasonHeaderMatchType               gatewayapi_v1alpha2.RouteConditionReason = "HeaderMatchType"
+	ReasonQueryParamMatchType           gatewayapi_v1alpha2.RouteConditionReason = "QueryParamMatchType"
+	ReasonHTTPRouteFilterType           gatewayapi_v1alpha2.RouteConditionReason = "HTTPRouteFilterType"
+	ReasonDegraded                      gatewayapi_v1alpha2.RouteConditionReason = "Degraded"
+	ReasonErrorsExist                   gatewayapi_v1alpha2.RouteConditionReason = "ErrorsExist"
+	ReasonAllBackendRefsHaveZeroWeights gatewayapi_v1alpha2.RouteConditionReason = "AllBackendRefsHaveZeroWeights"
+	ReasonInvalidPathMatch              gatewayapi_v1alpha2.RouteConditionReason = "InvalidPathMatch"
+	ReasonInvalidGateway                gatewayapi_v1alpha2.RouteConditionReason = "InvalidGateway"
+	ReasonListenersNotReady             gatewayapi_v1alpha2.RouteConditionReason = "ListenersNotReady"
 )
 
 // clock is used to set lastTransitionTime on status conditions.
@@ -52,9 +51,9 @@ var clock utilclock.Clock = utilclock.RealClock{}
 // Route's status.
 type RouteStatusUpdate struct {
 	FullName            types.NamespacedName
-	RouteParentStatuses []*gatewayapi_v1beta1.RouteParentStatus
+	RouteParentStatuses []*gatewayapi_v1alpha2.RouteParentStatus
 	GatewayRef          types.NamespacedName
-	GatewayController   gatewayapi_v1beta1.GatewayController
+	GatewayController   gatewayapi_v1alpha2.GatewayController
 	Resource            client.Object
 	Generation          int64
 	TransitionTime      metav1.Time
@@ -64,11 +63,11 @@ type RouteStatusUpdate struct {
 // parent ref's RouteParentStatus.
 type RouteParentStatusUpdate struct {
 	*RouteStatusUpdate
-	parentRef gatewayapi_v1beta1.ParentReference
+	parentRef gatewayapi_v1alpha2.ParentReference
 }
 
 // StatusUpdateFor returns a RouteParentStatusUpdate for the given parent ref.
-func (r *RouteStatusUpdate) StatusUpdateFor(parentRef gatewayapi_v1beta1.ParentReference) *RouteParentStatusUpdate {
+func (r *RouteStatusUpdate) StatusUpdateFor(parentRef gatewayapi_v1alpha2.ParentReference) *RouteParentStatusUpdate {
 	return &RouteParentStatusUpdate{
 		RouteStatusUpdate: r,
 		parentRef:         parentRef,
@@ -77,8 +76,8 @@ func (r *RouteStatusUpdate) StatusUpdateFor(parentRef gatewayapi_v1beta1.ParentR
 
 // AddCondition adds a condition with the given properties
 // to the RouteParentStatus.
-func (r *RouteParentStatusUpdate) AddCondition(conditionType gatewayapi_v1beta1.RouteConditionType, status metav1.ConditionStatus, reason gatewayapi_v1beta1.RouteConditionReason, message string) metav1.Condition {
-	var rps *gatewayapi_v1beta1.RouteParentStatus
+func (r *RouteParentStatusUpdate) AddCondition(conditionType gatewayapi_v1alpha2.RouteConditionType, status metav1.ConditionStatus, reason gatewayapi_v1alpha2.RouteConditionReason, message string) metav1.Condition {
+	var rps *gatewayapi_v1alpha2.RouteParentStatus
 
 	for _, v := range r.RouteParentStatuses {
 		if v.ParentRef == r.parentRef {
@@ -88,7 +87,7 @@ func (r *RouteParentStatusUpdate) AddCondition(conditionType gatewayapi_v1beta1.
 	}
 
 	if rps == nil {
-		rps = &gatewayapi_v1beta1.RouteParentStatus{
+		rps = &gatewayapi_v1alpha2.RouteParentStatus{
 			ParentRef:      r.parentRef,
 			ControllerName: r.GatewayController,
 		}
@@ -126,7 +125,7 @@ func (r *RouteParentStatusUpdate) AddCondition(conditionType gatewayapi_v1beta1.
 	return cond
 }
 
-func (r *RouteStatusUpdate) ConditionsForParentRef(parentRef gatewayapi_v1beta1.ParentReference) []metav1.Condition {
+func (r *RouteStatusUpdate) ConditionsForParentRef(parentRef gatewayapi_v1alpha2.ParentReference) []metav1.Condition {
 	for _, rps := range r.RouteParentStatuses {
 		if rps.ParentRef == parentRef {
 			return rps.Conditions
@@ -137,7 +136,7 @@ func (r *RouteStatusUpdate) ConditionsForParentRef(parentRef gatewayapi_v1beta1.
 }
 
 func (r *RouteStatusUpdate) Mutate(obj client.Object) client.Object {
-	var newRouteParentStatuses []gatewayapi_v1beta1.RouteParentStatus
+	var newRouteParentStatuses []gatewayapi_v1alpha2.RouteParentStatus
 
 	for _, rps := range r.RouteParentStatuses {
 		for i := range rps.Conditions {
@@ -151,7 +150,7 @@ func (r *RouteStatusUpdate) Mutate(obj client.Object) client.Object {
 	}
 
 	switch o := obj.(type) {
-	case *gatewayapi_v1beta1.HTTPRoute:
+	case *gatewayapi_v1alpha2.HTTPRoute:
 		route := o.DeepCopy()
 
 		// Get all the RouteParentStatuses that are for other Gateways.

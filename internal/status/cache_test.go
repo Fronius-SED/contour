@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	gatewayapi_v1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	gatewayapi_v1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
 type testCacheEntry struct {
@@ -50,7 +50,7 @@ func TestCacheAcquisition(t *testing.T) {
 	proxy := &contour_api_v1.HTTPProxy{
 		ObjectMeta: fixture.ObjectMeta("test/proxy"),
 	}
-	httpRoute := &gatewayapi_v1beta1.HTTPRoute{
+	httpRoute := &gatewayapi_v1alpha2.HTTPRoute{
 		ObjectMeta: fixture.ObjectMeta("test/httproute"),
 	}
 	cache := NewCache(types.NamespacedName{Name: "contour", Namespace: "projectcontour"}, "")

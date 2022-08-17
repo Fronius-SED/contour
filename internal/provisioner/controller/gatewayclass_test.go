@@ -28,70 +28,70 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	gatewayv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	gatewayv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
 func TestGatewayClassReconcile(t *testing.T) {
 	tests := map[string]struct {
-		gatewayClass  *gatewayv1beta1.GatewayClass
+		gatewayClass  *gatewayv1alpha2.GatewayClass
 		params        *contourv1alpha1.ContourDeployment
 		req           *reconcile.Request
 		wantCondition *metav1.Condition
-		assertions    func(t *testing.T, r *gatewayClassReconciler, gc *gatewayv1beta1.GatewayClass, reconcileErr error)
+		assertions    func(t *testing.T, r *gatewayClassReconciler, gc *gatewayv1alpha2.GatewayClass, reconcileErr error)
 	}{
 		"reconcile request for non-existent gatewayclass results in no error": {
 			req: &reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: "nonexistent"},
 			},
-			assertions: func(t *testing.T, r *gatewayClassReconciler, gc *gatewayv1beta1.GatewayClass, reconcileErr error) {
+			assertions: func(t *testing.T, r *gatewayClassReconciler, gc *gatewayv1alpha2.GatewayClass, reconcileErr error) {
 				assert.NoError(t, reconcileErr)
 
-				gatewayClasses := &gatewayv1beta1.GatewayClassList{}
+				gatewayClasses := &gatewayv1alpha2.GatewayClassList{}
 				require.NoError(t, r.client.List(context.Background(), gatewayClasses))
 				assert.Empty(t, gatewayClasses.Items)
 			},
 		},
 		"gatewayclass not controlled by us does not get conditions set": {
-			gatewayClass: &gatewayv1beta1.GatewayClass{
+			gatewayClass: &gatewayv1alpha2.GatewayClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gatewayclass-1",
 				},
-				Spec: gatewayv1beta1.GatewayClassSpec{
-					ControllerName: gatewayv1beta1.GatewayController("someothercontroller.io/controller"),
+				Spec: gatewayv1alpha2.GatewayClassSpec{
+					ControllerName: gatewayv1alpha2.GatewayController("someothercontroller.io/controller"),
 				},
 			},
-			assertions: func(t *testing.T, r *gatewayClassReconciler, gc *gatewayv1beta1.GatewayClass, reconcileErr error) {
+			assertions: func(t *testing.T, r *gatewayClassReconciler, gc *gatewayv1alpha2.GatewayClass, reconcileErr error) {
 				assert.NoError(t, reconcileErr)
 
-				res := &gatewayv1beta1.GatewayClass{}
+				res := &gatewayv1alpha2.GatewayClass{}
 				require.NoError(t, r.client.Get(context.Background(), keyFor(gc), res))
 
 				assert.Empty(t, res.Status.Conditions)
 			},
 		},
 		"gatewayclass controlled by us with no parameters gets Accepted: true condition": {
-			gatewayClass: &gatewayv1beta1.GatewayClass{
+			gatewayClass: &gatewayv1alpha2.GatewayClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gatewayclass-1",
 				},
-				Spec: gatewayv1beta1.GatewayClassSpec{
+				Spec: gatewayv1alpha2.GatewayClassSpec{
 					ControllerName: "projectcontour.io/gateway-controller",
 				},
 			},
 			wantCondition: &metav1.Condition{
-				Type:   string(gatewayv1beta1.GatewayClassConditionStatusAccepted),
+				Type:   string(gatewayv1alpha2.GatewayClassConditionStatusAccepted),
 				Status: metav1.ConditionTrue,
-				Reason: string(gatewayv1beta1.GatewayClassReasonAccepted),
+				Reason: string(gatewayv1alpha2.GatewayClassReasonAccepted),
 			},
 		},
 		"gatewayclass controlled by us with an invalid parametersRef (target does not exist) gets Accepted: false condition": {
-			gatewayClass: &gatewayv1beta1.GatewayClass{
+			gatewayClass: &gatewayv1alpha2.GatewayClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gatewayclass-1",
 				},
-				Spec: gatewayv1beta1.GatewayClassSpec{
+				Spec: gatewayv1alpha2.GatewayClassSpec{
 					ControllerName: "projectcontour.io/gateway-controller",
-					ParametersRef: &gatewayv1beta1.ParametersReference{
+					ParametersRef: &gatewayv1alpha2.ParametersReference{
 						Group:     "projectcontour.io",
 						Kind:      "ContourDeployment",
 						Name:      "gatewayclass-params",
@@ -100,19 +100,19 @@ func TestGatewayClassReconcile(t *testing.T) {
 				},
 			},
 			wantCondition: &metav1.Condition{
-				Type:   string(gatewayv1beta1.GatewayClassConditionStatusAccepted),
+				Type:   string(gatewayv1alpha2.GatewayClassConditionStatusAccepted),
 				Status: metav1.ConditionFalse,
-				Reason: string(gatewayv1beta1.GatewayClassReasonInvalidParameters),
+				Reason: string(gatewayv1alpha2.GatewayClassReasonInvalidParameters),
 			},
 		},
 		"gatewayclass controlled by us with an invalid parametersRef (invalid group) gets Accepted: false condition": {
-			gatewayClass: &gatewayv1beta1.GatewayClass{
+			gatewayClass: &gatewayv1alpha2.GatewayClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gatewayclass-1",
 				},
-				Spec: gatewayv1beta1.GatewayClassSpec{
+				Spec: gatewayv1alpha2.GatewayClassSpec{
 					ControllerName: "projectcontour.io/gateway-controller",
-					ParametersRef: &gatewayv1beta1.ParametersReference{
+					ParametersRef: &gatewayv1alpha2.ParametersReference{
 						Group:     "invalidgroup.io",
 						Kind:      "ContourDeployment",
 						Name:      "gatewayclass-params",
@@ -127,19 +127,19 @@ func TestGatewayClassReconcile(t *testing.T) {
 				},
 			},
 			wantCondition: &metav1.Condition{
-				Type:   string(gatewayv1beta1.GatewayClassConditionStatusAccepted),
+				Type:   string(gatewayv1alpha2.GatewayClassConditionStatusAccepted),
 				Status: metav1.ConditionFalse,
-				Reason: string(gatewayv1beta1.GatewayClassReasonInvalidParameters),
+				Reason: string(gatewayv1alpha2.GatewayClassReasonInvalidParameters),
 			},
 		},
 		"gatewayclass controlled by us with an invalid parametersRef (invalid kind) gets Accepted: false condition": {
-			gatewayClass: &gatewayv1beta1.GatewayClass{
+			gatewayClass: &gatewayv1alpha2.GatewayClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gatewayclass-1",
 				},
-				Spec: gatewayv1beta1.GatewayClassSpec{
+				Spec: gatewayv1alpha2.GatewayClassSpec{
 					ControllerName: "projectcontour.io/gateway-controller",
-					ParametersRef: &gatewayv1beta1.ParametersReference{
+					ParametersRef: &gatewayv1alpha2.ParametersReference{
 						Group:     "projectcontour.io",
 						Kind:      "InvalidKind",
 						Name:      "gatewayclass-params",
@@ -154,19 +154,19 @@ func TestGatewayClassReconcile(t *testing.T) {
 				},
 			},
 			wantCondition: &metav1.Condition{
-				Type:   string(gatewayv1beta1.GatewayClassConditionStatusAccepted),
+				Type:   string(gatewayv1alpha2.GatewayClassConditionStatusAccepted),
 				Status: metav1.ConditionFalse,
-				Reason: string(gatewayv1beta1.GatewayClassReasonInvalidParameters),
+				Reason: string(gatewayv1alpha2.GatewayClassReasonInvalidParameters),
 			},
 		},
 		"gatewayclass controlled by us with an invalid parametersRef (invalid name) gets Accepted: false condition": {
-			gatewayClass: &gatewayv1beta1.GatewayClass{
+			gatewayClass: &gatewayv1alpha2.GatewayClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gatewayclass-1",
 				},
-				Spec: gatewayv1beta1.GatewayClassSpec{
+				Spec: gatewayv1alpha2.GatewayClassSpec{
 					ControllerName: "projectcontour.io/gateway-controller",
-					ParametersRef: &gatewayv1beta1.ParametersReference{
+					ParametersRef: &gatewayv1alpha2.ParametersReference{
 						Group:     "projectcontour.io",
 						Kind:      "ContourDeployment",
 						Name:      "invalid-name",
@@ -181,19 +181,19 @@ func TestGatewayClassReconcile(t *testing.T) {
 				},
 			},
 			wantCondition: &metav1.Condition{
-				Type:   string(gatewayv1beta1.GatewayClassConditionStatusAccepted),
+				Type:   string(gatewayv1alpha2.GatewayClassConditionStatusAccepted),
 				Status: metav1.ConditionFalse,
-				Reason: string(gatewayv1beta1.GatewayClassReasonInvalidParameters),
+				Reason: string(gatewayv1alpha2.GatewayClassReasonInvalidParameters),
 			},
 		},
 		"gatewayclass controlled by us with an invalid parametersRef (invalid namespace) gets Accepted: false condition": {
-			gatewayClass: &gatewayv1beta1.GatewayClass{
+			gatewayClass: &gatewayv1alpha2.GatewayClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gatewayclass-1",
 				},
-				Spec: gatewayv1beta1.GatewayClassSpec{
+				Spec: gatewayv1alpha2.GatewayClassSpec{
 					ControllerName: "projectcontour.io/gateway-controller",
-					ParametersRef: &gatewayv1beta1.ParametersReference{
+					ParametersRef: &gatewayv1alpha2.ParametersReference{
 						Group:     "projectcontour.io",
 						Kind:      "ContourDeployment",
 						Name:      "gatewayclass-params",
@@ -208,19 +208,19 @@ func TestGatewayClassReconcile(t *testing.T) {
 				},
 			},
 			wantCondition: &metav1.Condition{
-				Type:   string(gatewayv1beta1.GatewayClassConditionStatusAccepted),
+				Type:   string(gatewayv1alpha2.GatewayClassConditionStatusAccepted),
 				Status: metav1.ConditionFalse,
-				Reason: string(gatewayv1beta1.GatewayClassReasonInvalidParameters),
+				Reason: string(gatewayv1alpha2.GatewayClassReasonInvalidParameters),
 			},
 		},
 		"gatewayclass controlled by us with a valid parametersRef gets Accepted: true condition": {
-			gatewayClass: &gatewayv1beta1.GatewayClass{
+			gatewayClass: &gatewayv1alpha2.GatewayClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gatewayclass-1",
 				},
-				Spec: gatewayv1beta1.GatewayClassSpec{
+				Spec: gatewayv1alpha2.GatewayClassSpec{
 					ControllerName: "projectcontour.io/gateway-controller",
-					ParametersRef: &gatewayv1beta1.ParametersReference{
+					ParametersRef: &gatewayv1alpha2.ParametersReference{
 						Group:     "projectcontour.io",
 						Kind:      "ContourDeployment",
 						Name:      "gatewayclass-params",
@@ -235,19 +235,19 @@ func TestGatewayClassReconcile(t *testing.T) {
 				},
 			},
 			wantCondition: &metav1.Condition{
-				Type:   string(gatewayv1beta1.GatewayClassConditionStatusAccepted),
+				Type:   string(gatewayv1alpha2.GatewayClassConditionStatusAccepted),
 				Status: metav1.ConditionTrue,
-				Reason: string(gatewayv1beta1.GatewayClassReasonAccepted),
+				Reason: string(gatewayv1alpha2.GatewayClassReasonAccepted),
 			},
 		},
 		"gatewayclass controlled by us with a valid parametersRef but invalid parameter values gets Accepted: false condition": {
-			gatewayClass: &gatewayv1beta1.GatewayClass{
+			gatewayClass: &gatewayv1alpha2.GatewayClass{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gatewayclass-1",
 				},
-				Spec: gatewayv1beta1.GatewayClassSpec{
+				Spec: gatewayv1alpha2.GatewayClassSpec{
 					ControllerName: "projectcontour.io/gateway-controller",
-					ParametersRef: &gatewayv1beta1.ParametersReference{
+					ParametersRef: &gatewayv1alpha2.ParametersReference{
 						Group:     "projectcontour.io",
 						Kind:      "ContourDeployment",
 						Name:      "gatewayclass-params",
@@ -270,9 +270,9 @@ func TestGatewayClassReconcile(t *testing.T) {
 				},
 			},
 			wantCondition: &metav1.Condition{
-				Type:   string(gatewayv1beta1.GatewayClassConditionStatusAccepted),
+				Type:   string(gatewayv1alpha2.GatewayClassConditionStatusAccepted),
 				Status: metav1.ConditionFalse,
-				Reason: string(gatewayv1beta1.GatewayClassReasonInvalidParameters),
+				Reason: string(gatewayv1alpha2.GatewayClassReasonInvalidParameters),
 			},
 		},
 	}
@@ -308,7 +308,7 @@ func TestGatewayClassReconcile(t *testing.T) {
 			_, err = r.Reconcile(context.Background(), req)
 
 			if tc.wantCondition != nil {
-				res := &gatewayv1beta1.GatewayClass{}
+				res := &gatewayv1alpha2.GatewayClass{}
 				require.NoError(t, r.client.Get(context.Background(), keyFor(tc.gatewayClass), res))
 
 				require.Len(t, res.Status.Conditions, 1)

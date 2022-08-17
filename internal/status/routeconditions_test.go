@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	gatewayapi_v1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+	gatewayapi_v1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
 func TestHTTPRouteAddCondition(t *testing.T) {
@@ -35,12 +35,12 @@ func TestHTTPRouteAddCondition(t *testing.T) {
 
 	rpsUpdate := httpRouteUpdate.StatusUpdateFor(parentRef)
 
-	rpsUpdate.AddCondition(gatewayapi_v1beta1.RouteConditionAccepted, metav1.ConditionTrue, "Valid", "Valid HTTPRoute")
+	rpsUpdate.AddCondition(gatewayapi_v1alpha2.RouteConditionAccepted, metav1.ConditionTrue, "Valid", "Valid HTTPRoute")
 
 	require.Len(t, httpRouteUpdate.ConditionsForParentRef(parentRef), 1)
 	got := httpRouteUpdate.ConditionsForParentRef(parentRef)[0]
 
-	assert.EqualValues(t, gatewayapi_v1beta1.RouteConditionAccepted, got.Type)
+	assert.EqualValues(t, gatewayapi_v1alpha2.RouteConditionAccepted, got.Type)
 	assert.EqualValues(t, metav1.ConditionTrue, got.Status)
 	assert.EqualValues(t, "Valid", got.Reason)
 	assert.EqualValues(t, "Valid HTTPRoute", got.Message)

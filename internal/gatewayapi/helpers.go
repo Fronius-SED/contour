@@ -17,11 +17,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	gatewayapi_v1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-	gatewayapi_v1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
-func SectionNamePtr(sectionName string) *gatewayapi_v1beta1.SectionName {
-	gwSectionName := gatewayapi_v1beta1.SectionName(sectionName)
+func SectionNamePtr(sectionName string) *gatewayapi_v1alpha2.SectionName {
+	gwSectionName := gatewayapi_v1alpha2.SectionName(sectionName)
 	return &gwSectionName
 }
 
@@ -31,8 +30,8 @@ func SectionNamePtrV1Alpha2(sectionName string) *gatewayapi_v1alpha2.SectionName
 	return &gwSectionName
 }
 
-func PortNumPtr(port int) *gatewayapi_v1beta1.PortNumber {
-	pn := gatewayapi_v1beta1.PortNumber(port)
+func PortNumPtr(port int) *gatewayapi_v1alpha2.PortNumber {
+	pn := gatewayapi_v1alpha2.PortNumber(port)
 	return &pn
 }
 
@@ -42,49 +41,49 @@ func PortNumPtrV1Alpha2(port int) *gatewayapi_v1alpha2.PortNumber {
 	return &pn
 }
 
-func FromNamespacesPtr(val gatewayapi_v1beta1.FromNamespaces) *gatewayapi_v1beta1.FromNamespaces {
+func FromNamespacesPtr(val gatewayapi_v1alpha2.FromNamespaces) *gatewayapi_v1alpha2.FromNamespaces {
 	return &val
 }
 
-func PathMatchTypePtr(val gatewayapi_v1beta1.PathMatchType) *gatewayapi_v1beta1.PathMatchType {
+func PathMatchTypePtr(val gatewayapi_v1alpha2.PathMatchType) *gatewayapi_v1alpha2.PathMatchType {
 	return &val
 }
 
-func HeaderMatchTypePtr(val gatewayapi_v1beta1.HeaderMatchType) *gatewayapi_v1beta1.HeaderMatchType {
+func HeaderMatchTypePtr(val gatewayapi_v1alpha2.HeaderMatchType) *gatewayapi_v1alpha2.HeaderMatchType {
 	return &val
 }
 
-func QueryParamMatchTypePtr(val gatewayapi_v1beta1.QueryParamMatchType) *gatewayapi_v1beta1.QueryParamMatchType {
+func QueryParamMatchTypePtr(val gatewayapi_v1alpha2.QueryParamMatchType) *gatewayapi_v1alpha2.QueryParamMatchType {
 	return &val
 }
 
-func TLSModeTypePtr(mode gatewayapi_v1beta1.TLSModeType) *gatewayapi_v1beta1.TLSModeType {
+func TLSModeTypePtr(mode gatewayapi_v1alpha2.TLSModeType) *gatewayapi_v1alpha2.TLSModeType {
 	return &mode
 }
 
-func HTTPMethodPtr(method gatewayapi_v1beta1.HTTPMethod) *gatewayapi_v1beta1.HTTPMethod {
+func HTTPMethodPtr(method gatewayapi_v1alpha2.HTTPMethod) *gatewayapi_v1alpha2.HTTPMethod {
 	return &method
 }
 
-func AddressTypePtr(addressType gatewayapi_v1beta1.AddressType) *gatewayapi_v1beta1.AddressType {
+func AddressTypePtr(addressType gatewayapi_v1alpha2.AddressType) *gatewayapi_v1alpha2.AddressType {
 	return &addressType
 }
 
-func ListenerHostname(host string) *gatewayapi_v1beta1.Hostname {
-	h := gatewayapi_v1beta1.Hostname(host)
+func ListenerHostname(host string) *gatewayapi_v1alpha2.Hostname {
+	h := gatewayapi_v1alpha2.Hostname(host)
 	return &h
 }
 
-func PreciseHostname(host string) *gatewayapi_v1beta1.PreciseHostname {
-	h := gatewayapi_v1beta1.PreciseHostname(host)
+func PreciseHostname(host string) *gatewayapi_v1alpha2.PreciseHostname {
+	h := gatewayapi_v1alpha2.PreciseHostname(host)
 	return &h
 }
 
-func CertificateRef(name, namespace string) gatewayapi_v1beta1.SecretObjectReference {
-	ref := gatewayapi_v1beta1.SecretObjectReference{
+func CertificateRef(name, namespace string) gatewayapi_v1alpha2.SecretObjectReference {
+	ref := gatewayapi_v1alpha2.SecretObjectReference{
 		Group: GroupPtr(""),
 		Kind:  KindPtr("Secret"),
-		Name:  gatewayapi_v1beta1.ObjectName(name),
+		Name:  gatewayapi_v1alpha2.ObjectName(name),
 	}
 
 	if namespace != "" {
@@ -94,11 +93,11 @@ func CertificateRef(name, namespace string) gatewayapi_v1beta1.SecretObjectRefer
 	return ref
 }
 
-func GatewayParentRef(namespace, name string) gatewayapi_v1beta1.ParentReference {
-	parentRef := gatewayapi_v1beta1.ParentReference{
+func GatewayParentRef(namespace, name string) gatewayapi_v1alpha2.ParentReference {
+	parentRef := gatewayapi_v1alpha2.ParentReference{
 		Group: GroupPtr(gatewayapi_v1alpha2.GroupName),
 		Kind:  KindPtr("Gateway"),
-		Name:  gatewayapi_v1beta1.ObjectName(name),
+		Name:  gatewayapi_v1alpha2.ObjectName(name),
 	}
 
 	if namespace != "" {
@@ -123,7 +122,7 @@ func GatewayParentRefV1Alpha2(namespace, name string) gatewayapi_v1alpha2.Parent
 	return parentRef
 }
 
-func GatewayListenerParentRef(namespace, name, listener string) gatewayapi_v1beta1.ParentReference {
+func GatewayListenerParentRef(namespace, name, listener string) gatewayapi_v1alpha2.ParentReference {
 	parentRef := GatewayParentRef(namespace, name)
 
 	if listener != "" {
@@ -133,8 +132,8 @@ func GatewayListenerParentRef(namespace, name, listener string) gatewayapi_v1bet
 	return parentRef
 }
 
-func GroupPtr(group string) *gatewayapi_v1beta1.Group {
-	gwGroup := gatewayapi_v1beta1.Group(group)
+func GroupPtr(group string) *gatewayapi_v1alpha2.Group {
+	gwGroup := gatewayapi_v1alpha2.Group(group)
 	return &gwGroup
 }
 
@@ -144,8 +143,8 @@ func GroupPtrV1Alpha2(group string) *gatewayapi_v1alpha2.Group {
 	return &gwGroup
 }
 
-func KindPtr(kind string) *gatewayapi_v1beta1.Kind {
-	gwKind := gatewayapi_v1beta1.Kind(kind)
+func KindPtr(kind string) *gatewayapi_v1alpha2.Kind {
+	gwKind := gatewayapi_v1alpha2.Kind(kind)
 	return &gwKind
 }
 
@@ -155,8 +154,8 @@ func KindPtrV1Alpha2(kind string) *gatewayapi_v1alpha2.Kind {
 	return &gwKind
 }
 
-func NamespacePtr(namespace string) *gatewayapi_v1beta1.Namespace {
-	gwNamespace := gatewayapi_v1beta1.Namespace(namespace)
+func NamespacePtr(namespace string) *gatewayapi_v1alpha2.Namespace {
+	gwNamespace := gatewayapi_v1alpha2.Namespace(namespace)
 	return &gwNamespace
 }
 
@@ -171,23 +170,23 @@ func ObjectNamePtr(name string) *gatewayapi_v1alpha2.ObjectName {
 	return &objectName
 }
 
-func ServiceBackendObjectRef(name string, port int) gatewayapi_v1beta1.BackendObjectReference {
-	return gatewayapi_v1beta1.BackendObjectReference{
+func ServiceBackendObjectRef(name string, port int) gatewayapi_v1alpha2.BackendObjectReference {
+	return gatewayapi_v1alpha2.BackendObjectReference{
 		Group: GroupPtr(""),
 		Kind:  KindPtr("Service"),
-		Name:  gatewayapi_v1beta1.ObjectName(name),
+		Name:  gatewayapi_v1alpha2.ObjectName(name),
 		Port:  PortNumPtr(port),
 	}
 }
 
-func GatewayAddressTypePtr(addr gatewayapi_v1beta1.AddressType) *gatewayapi_v1beta1.AddressType {
+func GatewayAddressTypePtr(addr gatewayapi_v1alpha2.AddressType) *gatewayapi_v1alpha2.AddressType {
 	return &addr
 }
 
-func HTTPRouteMatch(pathType gatewayapi_v1beta1.PathMatchType, value string) []gatewayapi_v1beta1.HTTPRouteMatch {
-	return []gatewayapi_v1beta1.HTTPRouteMatch{
+func HTTPRouteMatch(pathType gatewayapi_v1alpha2.PathMatchType, value string) []gatewayapi_v1alpha2.HTTPRouteMatch {
+	return []gatewayapi_v1alpha2.HTTPRouteMatch{
 		{
-			Path: &gatewayapi_v1beta1.HTTPPathMatch{
+			Path: &gatewayapi_v1alpha2.HTTPPathMatch{
 				Type:  PathMatchTypePtr(pathType),
 				Value: pointer.StringPtr(value),
 			},
@@ -195,22 +194,22 @@ func HTTPRouteMatch(pathType gatewayapi_v1beta1.PathMatchType, value string) []g
 	}
 }
 
-func HTTPHeaderMatch(matchType gatewayapi_v1beta1.HeaderMatchType, name, value string) []gatewayapi_v1beta1.HTTPHeaderMatch {
-	return []gatewayapi_v1beta1.HTTPHeaderMatch{
+func HTTPHeaderMatch(matchType gatewayapi_v1alpha2.HeaderMatchType, name, value string) []gatewayapi_v1alpha2.HTTPHeaderMatch {
+	return []gatewayapi_v1alpha2.HTTPHeaderMatch{
 		{
-			Type:  HeaderMatchTypePtr(gatewayapi_v1beta1.HeaderMatchExact),
-			Name:  gatewayapi_v1beta1.HTTPHeaderName(name),
+			Type:  HeaderMatchTypePtr(gatewayapi_v1alpha2.HeaderMatchExact),
+			Name:  gatewayapi_v1alpha2.HTTPHeaderName(name),
 			Value: value,
 		},
 	}
 }
 
-func HTTPQueryParamMatches(namesAndValues map[string]string) []gatewayapi_v1beta1.HTTPQueryParamMatch {
-	var matches []gatewayapi_v1beta1.HTTPQueryParamMatch
+func HTTPQueryParamMatches(namesAndValues map[string]string) []gatewayapi_v1alpha2.HTTPQueryParamMatch {
+	var matches []gatewayapi_v1alpha2.HTTPQueryParamMatch
 
 	for name, val := range namesAndValues {
-		matches = append(matches, gatewayapi_v1beta1.HTTPQueryParamMatch{
-			Type:  QueryParamMatchTypePtr(gatewayapi_v1beta1.QueryParamMatchExact),
+		matches = append(matches, gatewayapi_v1alpha2.HTTPQueryParamMatch{
+			Type:  QueryParamMatchTypePtr(gatewayapi_v1alpha2.QueryParamMatchExact),
 			Name:  name,
 			Value: val,
 		})
@@ -219,8 +218,8 @@ func HTTPQueryParamMatches(namesAndValues map[string]string) []gatewayapi_v1beta
 	return matches
 }
 
-func HTTPBackendRefs(backendRefs ...[]gatewayapi_v1beta1.HTTPBackendRef) []gatewayapi_v1beta1.HTTPBackendRef {
-	var res []gatewayapi_v1beta1.HTTPBackendRef
+func HTTPBackendRefs(backendRefs ...[]gatewayapi_v1alpha2.HTTPBackendRef) []gatewayapi_v1alpha2.HTTPBackendRef {
+	var res []gatewayapi_v1alpha2.HTTPBackendRef
 
 	for _, ref := range backendRefs {
 		res = append(res, ref...)
@@ -228,10 +227,10 @@ func HTTPBackendRefs(backendRefs ...[]gatewayapi_v1beta1.HTTPBackendRef) []gatew
 	return res
 }
 
-func HTTPBackendRef(serviceName string, port int, weight int32) []gatewayapi_v1beta1.HTTPBackendRef {
-	return []gatewayapi_v1beta1.HTTPBackendRef{
+func HTTPBackendRef(serviceName string, port int, weight int32) []gatewayapi_v1alpha2.HTTPBackendRef {
+	return []gatewayapi_v1alpha2.HTTPBackendRef{
 		{
-			BackendRef: gatewayapi_v1beta1.BackendRef{
+			BackendRef: gatewayapi_v1alpha2.BackendRef{
 				BackendObjectReference: ServiceBackendObjectRef(serviceName, port),
 				Weight:                 &weight,
 			},
@@ -263,8 +262,8 @@ func TLSRouteBackendRef(serviceName string, port int, weight *int32) []gatewayap
 }
 
 // TODO(sk): delete when Gateway API v1alpha2 support is dropped
-func UpgradeParentRefs(parentRefs []gatewayapi_v1alpha2.ParentReference) []gatewayapi_v1beta1.ParentReference {
-	var res []gatewayapi_v1beta1.ParentReference
+func UpgradeParentRefs(parentRefs []gatewayapi_v1alpha2.ParentReference) []gatewayapi_v1alpha2.ParentReference {
+	var res []gatewayapi_v1alpha2.ParentReference
 
 	for _, parentRef := range parentRefs {
 		res = append(res, UpgradeParentRef(parentRef))
@@ -274,8 +273,8 @@ func UpgradeParentRefs(parentRefs []gatewayapi_v1alpha2.ParentReference) []gatew
 }
 
 // TODO(sk): delete when Gateway API v1alpha2 support is dropped
-func UpgradeParentRef(parentRef gatewayapi_v1alpha2.ParentReference) gatewayapi_v1beta1.ParentReference {
-	upgraded := gatewayapi_v1beta1.ParentReference{}
+func UpgradeParentRef(parentRef gatewayapi_v1alpha2.ParentReference) gatewayapi_v1alpha2.ParentReference {
+	upgraded := gatewayapi_v1alpha2.ParentReference{}
 
 	if parentRef.Group != nil {
 		upgraded.Group = GroupPtr(string(*parentRef.Group))
@@ -289,7 +288,7 @@ func UpgradeParentRef(parentRef gatewayapi_v1alpha2.ParentReference) gatewayapi_
 		upgraded.Namespace = NamespacePtr(string(*parentRef.Namespace))
 	}
 
-	upgraded.Name = gatewayapi_v1beta1.ObjectName(parentRef.Name)
+	upgraded.Name = gatewayapi_v1alpha2.ObjectName(parentRef.Name)
 
 	if parentRef.SectionName != nil {
 		upgraded.SectionName = SectionNamePtr(string(*parentRef.SectionName))
@@ -303,8 +302,8 @@ func UpgradeParentRef(parentRef gatewayapi_v1alpha2.ParentReference) gatewayapi_
 }
 
 // TODO(sk): delete when Gateway API v1alpha2 support is dropped
-func UpgradeRouteParentStatuses(routeParentStatuses []gatewayapi_v1alpha2.RouteParentStatus) []gatewayapi_v1beta1.RouteParentStatus {
-	var res []gatewayapi_v1beta1.RouteParentStatus
+func UpgradeRouteParentStatuses(routeParentStatuses []gatewayapi_v1alpha2.RouteParentStatus) []gatewayapi_v1alpha2.RouteParentStatus {
+	var res []gatewayapi_v1alpha2.RouteParentStatus
 
 	for _, rps := range routeParentStatuses {
 		res = append(res, UpgradeRouteParentStatus(rps))
@@ -314,16 +313,16 @@ func UpgradeRouteParentStatuses(routeParentStatuses []gatewayapi_v1alpha2.RouteP
 }
 
 // TODO(sk): delete when Gateway API v1alpha2 support is dropped
-func UpgradeRouteParentStatus(routeParentStatus gatewayapi_v1alpha2.RouteParentStatus) gatewayapi_v1beta1.RouteParentStatus {
-	return gatewayapi_v1beta1.RouteParentStatus{
+func UpgradeRouteParentStatus(routeParentStatus gatewayapi_v1alpha2.RouteParentStatus) gatewayapi_v1alpha2.RouteParentStatus {
+	return gatewayapi_v1alpha2.RouteParentStatus{
 		ParentRef:      UpgradeParentRef(routeParentStatus.ParentRef),
-		ControllerName: gatewayapi_v1beta1.GatewayController(routeParentStatus.ControllerName),
+		ControllerName: gatewayapi_v1alpha2.GatewayController(routeParentStatus.ControllerName),
 		Conditions:     routeParentStatus.Conditions,
 	}
 }
 
 // TODO(sk): delete when Gateway API v1alpha2 support is dropped
-func DowngradeRouteParentStatuses(routeParentStatuses []gatewayapi_v1beta1.RouteParentStatus) []gatewayapi_v1alpha2.RouteParentStatus {
+func DowngradeRouteParentStatuses(routeParentStatuses []gatewayapi_v1alpha2.RouteParentStatus) []gatewayapi_v1alpha2.RouteParentStatus {
 	var res []gatewayapi_v1alpha2.RouteParentStatus
 
 	for _, rps := range routeParentStatuses {
@@ -338,7 +337,7 @@ func DowngradeRouteParentStatuses(routeParentStatuses []gatewayapi_v1beta1.Route
 }
 
 // TODO(sk): delete when Gateway API v1alpha2 support is dropped
-func downgradeParentRef(parentRef gatewayapi_v1beta1.ParentReference) gatewayapi_v1alpha2.ParentReference {
+func downgradeParentRef(parentRef gatewayapi_v1alpha2.ParentReference) gatewayapi_v1alpha2.ParentReference {
 	downgraded := gatewayapi_v1alpha2.ParentReference{}
 
 	if parentRef.Group != nil {
@@ -367,19 +366,19 @@ func downgradeParentRef(parentRef gatewayapi_v1beta1.ParentReference) gatewayapi
 }
 
 // TODO(sk): delete when Gateway API v1alpha2 support is dropped
-func UpgradeHostnames(hostnames []gatewayapi_v1alpha2.Hostname) []gatewayapi_v1beta1.Hostname {
-	var res []gatewayapi_v1beta1.Hostname
+func UpgradeHostnames(hostnames []gatewayapi_v1alpha2.Hostname) []gatewayapi_v1alpha2.Hostname {
+	var res []gatewayapi_v1alpha2.Hostname
 
 	for _, hostname := range hostnames {
-		res = append(res, gatewayapi_v1beta1.Hostname(hostname))
+		res = append(res, gatewayapi_v1alpha2.Hostname(hostname))
 	}
 
 	return res
 }
 
 // TODO(sk): delete when Gateway API v1alpha2 support is dropped
-func UpgradeBackendRef(backendRef gatewayapi_v1alpha2.BackendRef) gatewayapi_v1beta1.BackendRef {
-	upgraded := gatewayapi_v1beta1.BackendRef{}
+func UpgradeBackendRef(backendRef gatewayapi_v1alpha2.BackendRef) gatewayapi_v1alpha2.BackendRef {
+	upgraded := gatewayapi_v1alpha2.BackendRef{}
 
 	if backendRef.Group != nil {
 		upgraded.Group = GroupPtr(string(*backendRef.Group))
@@ -389,7 +388,7 @@ func UpgradeBackendRef(backendRef gatewayapi_v1alpha2.BackendRef) gatewayapi_v1b
 		upgraded.Kind = KindPtr(string(*backendRef.Kind))
 	}
 
-	upgraded.Name = gatewayapi_v1beta1.ObjectName(backendRef.Name)
+	upgraded.Name = gatewayapi_v1alpha2.ObjectName(backendRef.Name)
 
 	if backendRef.Namespace != nil {
 		upgraded.Namespace = NamespacePtr(string(*backendRef.Namespace))
@@ -408,8 +407,8 @@ func UpgradeBackendRef(backendRef gatewayapi_v1alpha2.BackendRef) gatewayapi_v1b
 // to a Gateway with the given namespace/name, irrespective of whether a
 // section/listener name has been specified (i.e. a parent ref to a listener
 // on the specified gateway will return "true").
-func IsRefToGateway(parentRef gatewayapi_v1beta1.ParentReference, gateway types.NamespacedName) bool {
-	if parentRef.Group != nil && string(*parentRef.Group) != gatewayapi_v1beta1.GroupName {
+func IsRefToGateway(parentRef gatewayapi_v1alpha2.ParentReference, gateway types.NamespacedName) bool {
+	if parentRef.Group != nil && string(*parentRef.Group) != gatewayapi_v1alpha2.GroupName {
 		return false
 	}
 
