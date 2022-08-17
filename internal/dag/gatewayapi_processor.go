@@ -1100,7 +1100,7 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 		var (
 			headerPolicy       *HeadersPolicy
 			headerModifierSeen bool
-			extensionRefAuth   *gatewayapi_v1alpha2.LocalObjectReference // Authentication extension reference
+			extensionRefAuth   *gatewayapi_v1alpha2.LocalObjectReference = nil // Authentication extension reference
 			redirect           *gatewayapi_v1alpha2.HTTPRequestRedirectFilter
 			mirrorPolicy       *MirrorPolicy
 		)
@@ -1154,6 +1154,9 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 				//
 				if filter.ExtensionRef.Group == "authorization" && filter.ExtensionRef.Kind == "ExtensionService" {
 					extensionRefAuth = &gatewayapi_v1alpha2.LocalObjectReference{Name: filter.ExtensionRef.Name, Group: filter.ExtensionRef.Group, Kind: filter.ExtensionRef.Kind}
+				} else {
+					var err error
+					routeAccessor.AddCondition(gatewayapi_v1alpha2.RouteConditionResolvedRefs, metav1.ConditionFalse, status.ReasonDegraded, fmt.Sprintf("%s Unsoporrted ExtensionRef!", err))
 				}
 
 			default:
@@ -1180,12 +1183,13 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 				case listener.tlsSecret != nil:
 					svhost := p.dag.EnsureSecureVirtualHost(host)
 					svhost.Secret = listener.tlsSecret
-					svhost.AddRoute(route)
 
 					// Configure external authentication
 					if nil != extensionRefAuth {
 						addExtensionRefAuthentication(namespace, extensionRefAuth, svhost, p, routeAccessor)
 					}
+					svhost.AddRoute(route)
+
 				default:
 					vhost := p.dag.EnsureVirtualHost(host)
 					vhost.AddRoute(route)
