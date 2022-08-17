@@ -63,6 +63,11 @@ type matchConditions struct {
 	queryParams []QueryParamMatchCondition
 }
 
+type AuthSettings struct {
+	authDisabled bool
+	authContext  map[string]string
+}
+
 // Run translates Gateway API types into DAG objects and
 // adds them to the DAG.
 func (p *GatewayAPIProcessor) Run(dag *DAG, source *KubernetesCache) {
@@ -1097,6 +1102,7 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 		var (
 			headerPolicy       *HeadersPolicy
 			headerModifierSeen bool
+			authSettings       *AuthSettings
 			redirect           *gatewayapi_v1alpha2.HTTPRequestRedirectFilter
 			mirrorPolicy       *MirrorPolicy
 		)
@@ -1147,6 +1153,11 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 					}
 				}
 			case gatewayapi_v1alpha2.HTTPRouteFilterExtensionRef:
+				//filter.ExtensionRef.Group
+				//filter.ExtensionRef.Kind
+				if filter.ExtensionRef.Name == "envoy.filters.http.ext_authz" {
+					authSettings = &AuthSettings{authDisabled: false, authContext: make(map[string]string)}
+				}
 
 			default:
 				routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonHTTPRouteFilterType,
@@ -1162,7 +1173,7 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 		if redirect != nil {
 			routes = p.redirectRoutes(matchconditions, headerPolicy, redirect)
 		} else {
-			routes = p.clusterRoutes(route.Namespace, matchconditions, headerPolicy, mirrorPolicy, rule.BackendRefs, routeAccessor)
+			routes = p.clusterRoutes(route.Namespace, matchconditions, headerPolicy, mirrorPolicy, rule.BackendRefs, authSettings, routeAccessor)
 		}
 
 		// Add each route to the relevant vhost(s)/svhosts(s).
@@ -1360,7 +1371,7 @@ func gatewayQueryParamMatchConditions(matches []gatewayapi_v1alpha2.HTTPQueryPar
 }
 
 // clusterRoutes builds a []*dag.Route for the supplied set of matchConditions, headerPolicy and backendRefs.
-func (p *GatewayAPIProcessor) clusterRoutes(routeNamespace string, matchConditions []*matchConditions, headerPolicy *HeadersPolicy, mirrorPolicy *MirrorPolicy, backendRefs []gatewayapi_v1alpha2.HTTPBackendRef, routeAccessor *status.RouteParentStatusUpdate) []*Route {
+func (p *GatewayAPIProcessor) clusterRoutes(routeNamespace string, matchConditions []*matchConditions, headerPolicy *HeadersPolicy, mirrorPolicy *MirrorPolicy, backendRefs []gatewayapi_v1alpha2.HTTPBackendRef, authSettings *AuthSettings, routeAccessor *status.RouteParentStatusUpdate) []*Route {
 	if len(backendRefs) == 0 {
 		routeAccessor.AddCondition(gatewayapi_v1alpha2.RouteConditionResolvedRefs, metav1.ConditionFalse, status.ReasonDegraded, "At least one Spec.Rules.BackendRef must be specified.")
 		return nil
@@ -1419,14 +1430,21 @@ func (p *GatewayAPIProcessor) clusterRoutes(routeNamespace string, matchConditio
 	// the matches is satisfied." To implement this,
 	// we create a separate route per match.
 	for _, mc := range matchConditions {
-		routes = append(routes, &Route{
+		r := &Route{
 			Clusters:                  clusters,
 			PathMatchCondition:        mc.path,
 			HeaderMatchConditions:     mc.headers,
 			QueryParamMatchConditions: mc.queryParams,
 			RequestHeadersPolicy:      headerPolicy,
 			MirrorPolicy:              mirrorPolicy,
-		})
+		}
+		if nil != authSettings {
+			if !authSettings.authDisabled {
+				r.AuthDisabled = authSettings.authDisabled
+				r.AuthContext = authSettings.authContext
+			}
+		}
+		routes = append(routes, r)
 	}
 
 	for _, route := range routes {
