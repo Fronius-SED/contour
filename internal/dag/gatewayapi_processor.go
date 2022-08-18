@@ -1217,7 +1217,10 @@ func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.
 		Name:       string(refIn.Name),
 	}
 
+	println("---- Namespace: " + namespace)
+
 	if ref.APIVersion != contour_api_v1alpha1.GroupVersion.String() {
+		println("---- AuthBadResourceVersion: Spec.Virtualhost.Authorization.extensionRef specifies an unsupported resource version")
 		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, "AuthBadResourceVersion: Spec.Virtualhost.Authorization.extensionRef specifies an unsupported resource version %q")
 		return
 	}
@@ -1230,6 +1233,7 @@ func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.
 
 	ext := p.dag.GetExtensionCluster(ExtensionClusterName(extensionName))
 	if ext == nil {
+		println("---- ExtensionServiceNotFound: Spec.Virtualhost.Authorization.ServiceRef extension service %q not found")
 		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, "ExtensionServiceNotFound: Spec.Virtualhost.Authorization.ServiceRef extension service %q not found")
 		return
 	}
@@ -1241,6 +1245,7 @@ func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.
 	// >>>>>>>>>>>> Response timeout should be prt of the Extension CRD in future
 	timeout, err := timeout.Parse("0.5")
 	if err != nil {
+		println("---- AuthResponseTimeoutInvalid: Spec.Virtualhost.Authorization.ResponseTimeout is invalid:")
 		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, "AuthResponseTimeoutInvalid: Spec.Virtualhost.Authorization.ResponseTimeout is invalid: %s")
 		return
 	}
@@ -1499,23 +1504,26 @@ func (p *GatewayAPIProcessor) clusterRoutes(routeNamespace string, matchConditio
 	// the matches is satisfied." To implement this,
 	// we create a separate route per match.
 	for _, mc := range matchConditions {
-		r := &Route{
+		routes = append(routes, &Route{
 			Clusters:                  clusters,
 			PathMatchCondition:        mc.path,
 			HeaderMatchConditions:     mc.headers,
 			QueryParamMatchConditions: mc.queryParams,
 			RequestHeadersPolicy:      headerPolicy,
 			MirrorPolicy:              mirrorPolicy,
-		}
-		if nil != extensionRefAuth {
-			r.AuthDisabled = false
-			// >>>>>>>>>>>> Where to get the context??
-			r.AuthContext = make(map[string]string)
-		}
-		routes = append(routes, r)
+		})
 	}
 
 	for _, route := range routes {
+
+		// Activate Authentication for this route
+		if nil != extensionRefAuth {
+			route.AuthDisabled = false
+			// >>>>>>>>>>>> Where to get the context??
+			route.AuthContext = make(map[string]string)
+			println("---- Activate auth")
+		}
+
 		// If there aren't any valid services, or the total weight of all of
 		// them equal zero, then return 500 responses to the caller.
 		if len(clusters) == 0 || totalWeight == 0 {
