@@ -1243,7 +1243,7 @@ func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.
 	svhost.AuthorizationFailOpen = false
 
 	// >>>>>>>>>>>> Response timeout should be prt of the Extension CRD in future
-	timeout, err := timeout.Parse("0.5")
+	timeout, err := timeout.Parse("0.5s")
 	if err != nil {
 		println("---- AuthResponseTimeoutInvalid: Spec.Virtualhost.Authorization.ResponseTimeout is invalid:")
 		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, "AuthResponseTimeoutInvalid: Spec.Virtualhost.Authorization.ResponseTimeout is invalid: %s")
