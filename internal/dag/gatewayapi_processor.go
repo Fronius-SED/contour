@@ -1059,6 +1059,7 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 
 	var programmed bool
 	for _, rule := range route.Spec.Rules {
+		println("---- Rule")
 		// Get match conditions for the rule.
 		var matchconditions []*matchConditions
 		for _, match := range rule.Matches {
@@ -1106,6 +1107,7 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 		)
 
 		for _, filter := range rule.Filters {
+			println("---- filter")
 			switch filter.Type {
 			case gatewayapi_v1alpha2.HTTPRouteFilterRequestHeaderModifier:
 				// Per Gateway API docs, "specifying a core filter multiple times has
@@ -1154,9 +1156,11 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 				//
 				if filter.ExtensionRef.Group == "authorization" && filter.ExtensionRef.Kind == "ExtensionService" {
 					extensionRefAuth = &gatewayapi_v1alpha2.LocalObjectReference{Name: filter.ExtensionRef.Name, Group: filter.ExtensionRef.Group, Kind: filter.ExtensionRef.Kind}
+					println("---- authorization")
 				} else {
 					var err error
 					routeAccessor.AddCondition(gatewayapi_v1alpha2.RouteConditionResolvedRefs, metav1.ConditionFalse, status.ReasonDegraded, fmt.Sprintf("%s Unsoporrted ExtensionRef!", err))
+					println("---- unknown extension")
 				}
 
 			default:
@@ -1186,6 +1190,7 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 
 					// Configure external authentication
 					if nil != extensionRefAuth {
+						println("---- Add Auth to host")
 						addExtensionRefAuthentication(namespace, extensionRefAuth, svhost, p, routeAccessor)
 					}
 					svhost.AddRoute(route)
