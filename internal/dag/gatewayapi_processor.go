@@ -1059,7 +1059,6 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 
 	var programmed bool
 	for _, rule := range route.Spec.Rules {
-		println("---- Rule")
 		// Get match conditions for the rule.
 		var matchconditions []*matchConditions
 		for _, match := range rule.Matches {
@@ -1107,7 +1106,6 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 		)
 
 		for _, filter := range rule.Filters {
-			println("---- filter")
 			switch filter.Type {
 			case gatewayapi_v1alpha2.HTTPRouteFilterRequestHeaderModifier:
 				// Per Gateway API docs, "specifying a core filter multiple times has
@@ -1156,11 +1154,9 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 				//
 				if filter.ExtensionRef.Group == "authorization" && filter.ExtensionRef.Kind == "ExtensionService" {
 					extensionRefAuth = &gatewayapi_v1alpha2.LocalObjectReference{Name: filter.ExtensionRef.Name, Group: filter.ExtensionRef.Group, Kind: filter.ExtensionRef.Kind}
-					println("---- authorization")
 				} else {
 					var err error
 					routeAccessor.AddCondition(gatewayapi_v1alpha2.RouteConditionResolvedRefs, metav1.ConditionFalse, status.ReasonDegraded, fmt.Sprintf("%s Unsoporrted ExtensionRef!", err))
-					println("---- unknown extension")
 				}
 
 			default:
@@ -1189,11 +1185,14 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 					svhost.Secret = listener.tlsSecret
 
 					// Configure external authentication
+					addRouteToHost := true
 					if nil != extensionRefAuth {
-						println("---- Add Auth to host")
-						addExtensionRefAuthentication(namespace, extensionRefAuth, svhost, p, routeAccessor)
+						addRouteToHost = addExtensionRefAuthentication(namespace, extensionRefAuth, svhost, p, routeAccessor)
 					}
-					svhost.AddRoute(route)
+					// Security first. If there was a problem in the Authentication config do not add the route to prevent unwanted access!
+					if addRouteToHost {
+						svhost.AddRoute(route)
+					}
 
 				default:
 					vhost := p.dag.EnsureVirtualHost(host)
@@ -1208,8 +1207,8 @@ func (p *GatewayAPIProcessor) computeHTTPRoute(route *gatewayapi_v1alpha2.HTTPRo
 	return programmed, hosts
 }
 
-// Adds external authentication for a route
-func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.LocalObjectReference, svhost *SecureVirtualHost, p *GatewayAPIProcessor, routeAccessor *status.RouteParentStatusUpdate) {
+// Adds external authentication for a route. Returns false if there was an error during adding the route
+func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.LocalObjectReference, svhost *SecureVirtualHost, p *GatewayAPIProcessor, routeAccessor *status.RouteParentStatusUpdate) bool {
 
 	ref := contour_api_v1.ExtensionServiceReference{
 		APIVersion: contour_api_v1alpha1.GroupVersion.String(),
@@ -1217,12 +1216,10 @@ func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.
 		Name:       string(refIn.Name),
 	}
 
-	println("---- Namespace: " + namespace)
-
 	if ref.APIVersion != contour_api_v1alpha1.GroupVersion.String() {
-		println("---- AuthBadResourceVersion: Spec.Virtualhost.Authorization.extensionRef specifies an unsupported resource version")
-		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, "AuthBadResourceVersion: Spec.Virtualhost.Authorization.extensionRef specifies an unsupported resource version %q")
-		return
+		println(fmt.Sprintf("AuthBadResourceVersion: Spec.Virtualhost.Authorization.extensionRef specifies an unsupported resource version %q", ref.APIVersion))
+		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, fmt.Sprintf("AuthBadResourceVersion: Spec.Virtualhost.Authorization.extensionRef specifies an unsupported resource version %q", ref.APIVersion))
+		return false
 	}
 
 	// Lookup the extension service reference.
@@ -1233,9 +1230,9 @@ func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.
 
 	ext := p.dag.GetExtensionCluster(ExtensionClusterName(extensionName))
 	if ext == nil {
-		println("---- ExtensionServiceNotFound: Spec.Virtualhost.Authorization.ServiceRef extension service %q not found")
-		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, "ExtensionServiceNotFound: Spec.Virtualhost.Authorization.ServiceRef extension service %q not found")
-		return
+		println(fmt.Sprintf("ExtensionServiceNotFound: Spec.Virtualhost.Authorization.ServiceRef extension service %q not found", ref.Name))
+		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, fmt.Sprintf("ExtensionServiceNotFound: Spec.Virtualhost.Authorization.ServiceRef extension service %q not found", ref.Name))
+		return false
 	}
 
 	// >>>>>>>>>>>> Should be part of the Extension CRD in future
@@ -1243,11 +1240,12 @@ func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.
 	svhost.AuthorizationFailOpen = false
 
 	// >>>>>>>>>>>> Response timeout should be prt of the Extension CRD in future
-	timeout, err := timeout.Parse("0.5s")
+	timeRange := "0.5s"
+	timeout, err := timeout.Parse(timeRange)
 	if err != nil {
-		println("---- AuthResponseTimeoutInvalid: Spec.Virtualhost.Authorization.ResponseTimeout is invalid:")
-		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, "AuthResponseTimeoutInvalid: Spec.Virtualhost.Authorization.ResponseTimeout is invalid: %s")
-		return
+		println(fmt.Sprintf("AuthResponseTimeoutInvalid: Spec.Virtualhost.Authorization.ResponseTimeout is invalid: %s", timeRange))
+		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, fmt.Sprintf("AuthResponseTimeoutInvalid: Spec.Virtualhost.Authorization.ResponseTimeout is invalid: %s", timeRange))
+		return false
 	}
 
 	if timeout.UseDefault() {
@@ -1268,7 +1266,7 @@ func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.
 			PackAsBytes:         auth.WithRequestBody.PackAsBytes,
 		}
 	}*/
-
+	return true
 }
 
 // validateBackendRef verifies that the specified BackendRef is valid.
@@ -1521,7 +1519,6 @@ func (p *GatewayAPIProcessor) clusterRoutes(routeNamespace string, matchConditio
 			route.AuthDisabled = false
 			// >>>>>>>>>>>> Where to get the context??
 			route.AuthContext = make(map[string]string)
-			println("---- Activate auth")
 		}
 
 		// If there aren't any valid services, or the total weight of all of
