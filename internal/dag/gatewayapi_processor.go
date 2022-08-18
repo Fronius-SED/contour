@@ -16,7 +16,6 @@ package dag
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/projectcontour/contour/internal/gatewayapi"
 	"github.com/projectcontour/contour/internal/k8s"
 	"github.com/projectcontour/contour/internal/status"
+	"github.com/projectcontour/contour/internal/timeout"
 
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1238,9 +1238,21 @@ func addExtensionRefAuthentication(namespace string, refIn *gatewayapi_v1alpha2.
 	// >>>>>>>>>>>> Should be part of the Extension CRD in future
 	svhost.AuthorizationService = ext
 	svhost.AuthorizationFailOpen = false
-	svhost.AuthorizationResponseTimeout = ext.RouteTimeoutPolicy.ResponseTimeout
 
-	println("Set Timeout to " + strconv.FormatInt(ext.RouteTimeoutPolicy.ResponseTimeout.Duration().Microseconds(), 10))
+	// >>>>>>>>>>>> Response timeout should be prt of the Extension CRD in future
+	timeRange := "10s"
+	timeout, err := timeout.Parse(timeRange)
+	if err != nil {
+		println(fmt.Sprintf("AuthResponseTimeoutInvalid: Spec.Virtualhost.Authorization.ResponseTimeout is invalid: %s", timeRange))
+		routeAccessor.AddCondition(status.ConditionNotImplemented, metav1.ConditionTrue, status.ReasonNotImplemented, fmt.Sprintf("AuthResponseTimeoutInvalid: Spec.Virtualhost.Authorization.ResponseTimeout is invalid: %s", timeRange))
+		return false
+	}
+
+	if timeout.UseDefault() {
+		svhost.AuthorizationResponseTimeout = ext.RouteTimeoutPolicy.ResponseTimeout
+	} else {
+		svhost.AuthorizationResponseTimeout = timeout
+	}
 
 	// >>>>>>>>>>>> Should be part of the Extension CRD in future
 	/*if auth.WithRequestBody != nil {
